@@ -70,7 +70,6 @@
       letter-spacing: 0.2px;
     }
 
-    /* top bar: count + search */
     .top-bar {
       display: flex;
       flex-wrap: wrap;
@@ -208,7 +207,6 @@
       font-weight: 350;
     }
 
-    /* Fullscreen iframe overlay */
     .game-frame-container {
       position: fixed;
       top: 0;
@@ -242,7 +240,7 @@
       flex-shrink: 0;
     }
 
-    .back-btn {
+    .back-btn, .fullscreen-btn {
       background: #1f2631;
       border: 1px solid #3a4250;
       color: #d3dbe6;
@@ -261,7 +259,7 @@
       background: rgba(28, 34, 44, 0.8);
     }
 
-    .back-btn:hover {
+    .back-btn:hover, .fullscreen-btn:hover {
       background: #2f3848;
       border-color: #5a6a80;
       color: white;
@@ -269,12 +267,12 @@
       box-shadow: 0 4px 0 #0b0e12;
     }
 
-    .back-btn:active {
+    .back-btn:active, .fullscreen-btn:active {
       transform: translateY(3px);
       box-shadow: 0 1px 0 #0b0e12;
     }
 
-    .back-btn svg {
+    .back-btn svg, .fullscreen-btn svg {
       width: 18px;
       height: 18px;
       fill: none;
@@ -299,7 +297,6 @@
       display: block;
     }
 
-    /* Custom loading screen inside iframe overlay */
     .custom-loading-screen {
       position: absolute;
       top: 0;
@@ -373,7 +370,7 @@
         padding: 0.8rem 0.5rem;
         border-radius: 1.4rem;
       }
-      .back-btn {
+      .back-btn, .fullscreen-btn {
         padding: 0.4rem 1.2rem;
         font-size: 0.8rem;
       }
@@ -405,7 +402,6 @@
     </h1>
     <div class="subhead">⎔ 500+ games</div>
     
-    <!-- top bar: count left, search right -->
     <div class="top-bar">
       <div class="games-count" id="gamesCount">Loading games...</div>
       <div class="search-wrapper">
@@ -422,16 +418,23 @@
     </div>
   </div>
 
-  <!-- Fullscreen iframe overlay -->
   <div class="game-frame-container" id="gameFrameContainer">
     <div class="game-frame-header">
+      <button class="fullscreen-btn" id="fullscreenBtn">
+        <svg viewBox="0 0 24 24">
+          <polyline points="8 3 3 3 3 8"/>
+          <polyline points="16 3 21 3 21 8"/>
+          <polyline points="8 21 3 21 3 16"/>
+          <polyline points="16 21 21 21 21 16"/>
+        </svg>
+        fullscreen
+      </button>
       <button class="back-btn" id="backBtn">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         back
       </button>
     </div>
-    <div class="game-iframe-wrapper">
-      <!-- Custom loading screen -->
+    <div class="game-iframe-wrapper" id="gameIframeWrapper">
       <div class="custom-loading-screen" id="customLoadingScreen">
         <div class="loading-spinner"></div>
         <div class="loading-text-custom">LOADING GAME</div>
@@ -954,27 +957,24 @@
   { name: "Steakandjakemidnightmarch", url: "https://olivia-games.github.io/seraph/games/steakandjakemidnightmarch/index.html", category: "action", description: "Steakandjakemidnightmarch delivers nonstop arcade-style action." },
       ];
 
-      // DOM elements
       const grid = document.getElementById('gameGrid');
       const frameContainer = document.getElementById('gameFrameContainer');
       const gameIframe = document.getElementById('gameIframe');
+      const iframeWrapper = document.getElementById('gameIframeWrapper');
       const backBtn = document.getElementById('backBtn');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
       const gamesCount = document.getElementById('gamesCount');
       const customLoadingScreen = document.getElementById('customLoadingScreen');
       const loadingGameName = document.getElementById('loadingGameName');
       const searchInput = document.getElementById('searchInput');
       const searchClearBtn = document.getElementById('searchClearBtn');
 
-      // 🚀 LOAD HARDCODED GAMES
       function loadGames() {
-        // Update UI with hardcoded games
         gamesCount.textContent = `🎮 ${GamesData.length} games loaded`;
-        
         renderGrid(GamesData);
         console.log(`✅ Engine loaded ${GamesData.length} hardcoded games`);
       }
 
-      // render grid based on data array
       function renderGrid(data) {
         if (data.length === 0) {
           grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#6a7a8c; padding:2rem 0;">no games match your filter</div>`;
@@ -994,7 +994,6 @@
         `).join('');
       }
 
-      // 🔍 FILTER FUNCTION
       function filterGames() {
         const query = searchInput.value.toLowerCase().trim();
         let filtered;
@@ -1011,7 +1010,6 @@
         gamesCount.textContent = `🎮 ${filtered.length} / ${GamesData.length} games`;
       }
 
-      // search input events
       searchInput.addEventListener('input', filterGames);
       searchClearBtn.addEventListener('click', function() {
         searchInput.value = '';
@@ -1019,7 +1017,6 @@
         searchInput.focus();
       });
 
-      // 🎮 EXECUTE GAME IN IFRAME - Uses the url field from each game
       document.addEventListener('click', async (e) => {
         if (e.target.closest('.game-card')) {
           const card = e.target.closest('.game-card');
@@ -1028,42 +1025,53 @@
           const gameTitle = card.getAttribute('data-game-title');
           
           try {
-            // Show only the game title on the custom loading screen
             loadingGameName.textContent = gameTitle;
-            
-            // Show the custom loading screen
             customLoadingScreen.classList.remove('hidden');
-            
-            // Show the iframe overlay immediately
             frameContainer.classList.add('active');
             document.body.style.overflow = 'hidden';
-            
-            // Set the iframe src directly to the game's URL
             gameIframe.src = gameUrl;
-            
-            // Push state for browser back button
             history.pushState({ game: true, url: gameUrl, name: gameName }, '');
-            
           } catch (error) {
             console.error('Game error:', error);
-            // Hide loading screen on error
             customLoadingScreen.classList.add('hidden');
-            // Show error in iframe
             gameIframe.srcdoc = `<html><body style="background:#0b0d10;color:#f85149;display:flex;align-items:center;justify-content:center;font-family:sans-serif;flex-direction:column;"><h2>Failed to load game</h2><p style="color:#8b949e;font-size:14px;">${error.message}</p></body></html>`;
           }
         }
       });
 
-      // Hide custom loading screen when iframe finishes loading
       gameIframe.addEventListener('load', function() {
-        // Small delay to ensure the game has rendered
         setTimeout(() => {
           customLoadingScreen.classList.add('hidden');
         }, 300);
       });
 
-      // Close game function
+      // Simplified fullscreen logic - targets the iframe directly
+      fullscreenBtn.onclick = () => {
+        const frame = document.getElementById('gameIframe');
+        if (frame.requestFullscreen) {
+          frame.requestFullscreen();
+        } else if (frame.webkitRequestFullscreen) { // Safari
+          frame.webkitRequestFullscreen();
+        } else if (frame.msRequestFullscreen) { // IE/Edge
+          frame.msRequestFullscreen();
+        }
+      };
+
       function closeGame() {
+        if (document.fullscreenElement || 
+            document.webkitFullscreenElement || 
+            document.mozFullScreenElement || 
+            document.msFullscreenElement) {
+          if (document.exitFullscreen) {
+            document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+          }
+        }
         frameContainer.classList.remove('active');
         gameIframe.src = '';
         customLoadingScreen.classList.add('hidden');
@@ -1073,29 +1081,26 @@
         }
       }
 
-      // Back button event
       backBtn.addEventListener('click', closeGame);
 
-      // Escape key to close
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && frameContainer.classList.contains('active')) {
-          closeGame();
+          if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+            closeGame();
+          }
         }
       });
 
-      // Handle browser back button
       window.addEventListener('popstate', function(e) {
         if (frameContainer.classList.contains('active')) {
           closeGame();
         }
       });
 
-      // Prevent right-click on games
       document.addEventListener('contextmenu', (e) => {
         if (e.target.closest('.game-card')) e.preventDefault();
       });
 
-      // 🏁 Initialize when DOM loads
       window.addEventListener('load', loadGames);
     })();
   </script>
